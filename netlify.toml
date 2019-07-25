@@ -1,7 +1,7 @@
 [build]
   base = "preview/"
   publish = "preview/build/"
-  command = "gulp playbook && node_modules/.bin/antora --stacktrace --fetch --html-url-extension-style=indexify site.patched.yml"
+  command = "pip 3 install WeasyPrint && gulp playbook && node_modules/.bin/antora --stacktrace --fetch --html-url-extension-style=indexify site.patched.yml"
 
 [build.environment]
   NODE_VERSION = "10"
