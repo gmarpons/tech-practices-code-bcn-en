@@ -1,9 +1,8 @@
 const fs = require('fs')
-const { dest } = require('gulp')
 const { series } = require('gulp')
 const request = require('request')
-const yaml = require('yamljs')
 const toRegex = require('to-regex')
+const yaml = require('yamljs')
 
 function getPlaybook() {
   return request('https://raw.githubusercontent.com/AjuntamentdeBarcelona/ethical-digital-standards-site/master/site.yml')
@@ -36,7 +35,4 @@ function patchPlaybook(cb) {
   cb()
 }
 
-const playbook = series(getPlaybook, patchPlaybook)
-
-exports.playbook = playbook
-exports.default = playbook
+exports.playbook = series(getPlaybook, patchPlaybook)
