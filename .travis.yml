@@ -1,49 +1,46 @@
-distribution: xenial
-language: node_js
-node_js:
-  - "10"
-services:
-  - docker
+dist: bionic
+language: python
+python:
+  - "3.7"
 addons:
   apt:
     packages:
     - jq
+branches:
+  only:
+  - master
+install:
+  - pip install yq
+  - pip install WeasyPrint
 before_script:
-  - pip install --user yq
-  - export ANTORA_COMPONENT_NAME="$(yq -r .name antora.yml)"
-  - export ANTORA_COMPONENT_VERSION="$(yq -r .version antora.yml)"
-  - export COMPONENT_NAME=$(yq -r '.name|.[3:]|sub("-";"_";"g")' antora.yml)
-  - export COMPONENT_LANGUAGE=$(yq -r '.name|.[0:2]' antora.yml)
-  # Following line creates a version name that concats "v", $ANTORA_COMPONENT_VERSION, and
-  # ".0", or a tag vX.Y.Z+1 if the largest existing version is vX.Y.Z.
-  - export DOC_VERSION="$(echo $ANTORA_COMPONENT_VERSION).$(echo "$({ echo v$(echo $ANTORA_COMPONENT_VERSION).0 ; git tag -l v$(echo $ANTORA_COMPONENT_VERSION).* --sort=v:refname ; } | tail -n 1 | grep -o '[[:digit:]]*$') + 1" | bc)"
-  - echo "DOC_VERSION"=$DOC_VERSION
+  - nvm install 10
+  - nvm use 10
+  - npm install gulp-cli -g
   - cd preview
-  - npm install
+  - npm ci                      # Install from package-lock.json
   # The gulp command below relies on variable $REPOSITORY_URL
   - export REPOSITORY_URL=${TRAVIS_REPO_SLUG}.git
   - gulp playbook
+  # Run Antora
+  - export ANTORA_COMPONENT_NAME="$(yq -r .name ${TRAVIS_BUILD_DIR}/antora.yml)"
+  - export COMPONENT_VERSION="$(yq -r .version ${TRAVIS_BUILD_DIR}/antora.yml)"
+  - export COMPONENT_NAME=$(yq -r '.name|.[3:]|sub("-";"_";"g")' ${TRAVIS_BUILD_DIR}/antora.yml)
+  - export COMPONENT_LANGUAGE=$(yq -r '.name|.[0:2]' ${TRAVIS_BUILD_DIR}/antora.yml)
+  - export LAST_COMMIT_DATE_ISO=$(git log -1 --format="%cI")
+  - export HTML_FILE="${TRAVIS_BUILD_DIR}/preview/build/$ANTORA_COMPONENT_NAME/$COMPONENT_VERSION/PDF/index.html"
+  - export DEPLOY_DIR="${TRAVIS_BUILD_DIR}/preview/build/PDF"
+  - export PDF_BASENAME="barcelona_${COMPONENT_NAME}_v${COMPONENT_VERSION}_${LAST_COMMIT_DATE_ISO}.${COMPONENT_LANGUAGE}.pdf"
+  - export PDF_FILE="${DEPLOY_DIR}/modules/ROOT/assets/attachments/${PDF_BASENAME}"
+  - node_modules/.bin/antora --stacktrace --fetch --html-url-extension-style=indexify --attribute "pdf-basename=${PDF_BASENAME}" site.patched.yml
 script:
-  - node_modules/.bin/antora --stacktrace --fetch --html-url-extension-style=indexify site.patched.yml
-  - export HTML_FILE="$ANTORA_COMPONENT_NAME/$ANTORA_COMPONENT_VERSION/PDF/index.html"
-  - export PDF_FILE="/build/doc.pdf"
-  - export DOCKER_COMMAND="weasyprint -p $HTML_FILE $PDF_FILE"
-  - echo $DOCKER_COMMAND
-  - docker run --mount type=bind,source="$(pwd)"/build,target=/build --workdir /build gmarpons/weasyprint:44-edge $DOCKER_COMMAND
-before_deploy:
-  - export TRAVIS_TAG="v$DOC_VERSION"
-  - echo "barcelona_${COMPONENT_NAME}_${DOC_VERSION}.${COMPONENT_LANGUAGE}.pdf" > filename.txt
-deploy:
-  provider: releases
-  api_key: $GITHUB_TOKEN
-  file:
-    - build/doc.pdf
-    - filename.txt
+  # Generate PDF
+  - mkdir -p $DEPLOY_DIR/modules/ROOT/assets/attachments
+  - weasyprint -p $HTML_FILE $PDF_FILE
+  - ls -l $DEPLOY_DIR/modules/ROOT/assets/attachments
+deploy:                         # Push to pdf branch of the origin remote (GitHub)
+  provider: pages
   skip_cleanup: true
-  on:
-    repo: $TRAVIS_REPO_SLUG
-  overwrite: false
-after_deploy:
-  - git config --local user.name $(git log -1 --pretty=format:'%cn')
-  - git config --local user.email $(git log -1 --pretty=format:'%ce')
-  - git tag $TRAVIS_TAG
+  github_token: $GITHUB_TOKEN   # Set in the settings page of your repository, as a secure variable
+  keep_history: true            # Incremental commit instead of push force
+  local_dir: $TRAVIS_BUILD_DIR/preview/build/PDF
+  target_branch: pdf
