@@ -28,19 +28,24 @@ before_script:
   - export COMPONENT_LANGUAGE=$(yq -r '.name|.[0:2]' ${TRAVIS_BUILD_DIR}/antora.yml)
   - export LAST_COMMIT_DATE_ISO=$(git log -1 --format="%cI")
   - export HTML_FILE="${TRAVIS_BUILD_DIR}/preview/build/$ANTORA_COMPONENT_NAME/$COMPONENT_VERSION/PDF/index.html"
-  - export DEPLOY_DIR="${TRAVIS_BUILD_DIR}/preview/build/PDF"
+  - export DEPLOY_DIR="${TRAVIS_BUILD_DIR}/PDF"
   - export PDF_BASENAME="barcelona_${COMPONENT_NAME}_v${COMPONENT_VERSION}_${LAST_COMMIT_DATE_ISO}.${COMPONENT_LANGUAGE}.pdf"
   - export PDF_FILE="${DEPLOY_DIR}/modules/ROOT/assets/attachments/${PDF_BASENAME}"
   - node_modules/.bin/antora --stacktrace --fetch --html-url-extension-style=indexify --attribute "pdf-basename=${PDF_BASENAME}" site.patched.yml
 script:
   # Generate PDF
-  - mkdir -p $DEPLOY_DIR/modules/ROOT/assets/attachments
-  - weasyprint -p $HTML_FILE $PDF_FILE
-  - ls -l $DEPLOY_DIR/modules/ROOT/assets/attachments
+  - mkdir -p ${DEPLOY_DIR}/modules/ROOT/assets/attachments
+  - weasyprint -p ${HTML_FILE} ${PDF_FILE}
+  - ls -l ${DEPLOY_DIR}/modules/ROOT/assets/attachments
+  # Create partial with the PDF filename
+  - mkdir -p ${DEPLOY_DIR}/modules/ROOT/partials
+  - echo ":pdf-basename:" ${PDF_BASENAME} > ${DEPLOY_DIR}/modules/ROOT/partials/deploy-info.adoc
+  # Copy antora.yml to deploy dir
+  - cp ${TRAVIS_BUILD_DIR}/antora.yml ${DEPLOY_DIR}
 deploy:                         # Push to pdf branch of the origin remote (GitHub)
   provider: pages
   skip_cleanup: true
   github_token: $GITHUB_TOKEN   # Set in the settings page of your repository, as a secure variable
   keep_history: true            # Incremental commit instead of push force
-  local_dir: $TRAVIS_BUILD_DIR/preview/build/PDF
+  local_dir: $DEPLOY_DIR
   target_branch: pdf
