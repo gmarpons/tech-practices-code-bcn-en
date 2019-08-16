@@ -1,7 +1,4 @@
 = Aim and scope
-ifndef::env-site,env-github[]
-include::_attributes.adoc[]
-endif::[]
 include::{partialsdir}/README.adoc[tag=metadata]
 
 == Aim

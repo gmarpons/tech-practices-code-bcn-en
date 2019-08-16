@@ -1,10 +1,5 @@
 = Principles for designing and developing digital services
-ifndef::env-site,env-github[]
-include::_attributes.adoc[]
-endif::[]
 include::{partialsdir}/README.adoc[tag=metadata]
-
-link:{attachmentsdir}/file.pdf[PDF]
 
 The following general principles and guidelines form the basis of Barcelona City Council’s agile digital transformation Strategy and digital services standards, in terms of their design, development and maintenance.
 

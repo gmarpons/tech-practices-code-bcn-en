@@ -1,0 +1,3 @@
+include::{partialsdir}/README.adoc[tag=metadata]
+
+include::{lang}/glossary:ROOT:page$glossary.adoc[]
